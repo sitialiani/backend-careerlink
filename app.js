@@ -30,6 +30,10 @@ app.get('/', (req, res) => {
 const authRoutes = require('./routes/authRoutes');
 const jobRoutes = require('./routes/jobRoutes');
 
+// ---MENTORING ROUTES ---
+const mentoringRoutes = require("./routes/mentoringRoutes");
+app.use("/api/mentoring", mentoringRoutes);
+
 
 // Gunakan rutenya
 // Artinya semua URL di authRoutes bakal diawali /api/auth
