@@ -1,27 +1,56 @@
-// Lokasi: controllers/jobController.js
-const db = require('../config/database');
+const db = require('../config/database'); 
+const jwt = require('jsonwebtoken'); 
+const notifHelper = require('../utils/notificationHelper');
 
-// --- 1. AMBIL SEMUA LOWONGAN (Bisa Search) ---
+// --- 1. AMBIL SEMUA LOWONGAN (Filter, Search & Hide Applied) ---
 exports.getAllJobs = async (req, res) => {
     try {
-        const { search } = req.query; // Ambil parameter ?search=... dari URL
+        const { type, search } = req.query;
+        let userId = null;
+
+        // --- LOGIKA BARU: CEK TOKEN USER ---
+        // Kita cek header Authorization manual di sini
+        // Tujuannya: Kalau user login, kita dapat ID-nya buat filter lowongan yang udah dilamar
+        const authHeader = req.headers['authorization'];
+        if (authHeader) {
+            const token = authHeader.split(' ')[1];
+            try {
+                // Pastikan 'YOUR_SECRET_KEY' sama dengan yang ada di authController / .env
+                const decoded = jwt.verify(token, process.env.JWT_SECRET || 'YOUR_SECRET_KEY'); 
+                userId = decoded.id;
+            } catch (err) {
+                // Token error/expired? Gpp, anggap guest user
+            }
+        }
         
         let query = 'SELECT * FROM jobs WHERE is_active = 1';
         let params = [];
 
-        // Kalau ada search, tambahkan filter SQL
+        // --- FITUR: SEMBUNYIKAN YANG SUDAH DILAMAR ---
+        if (userId) {
+            query += ' AND id NOT IN (SELECT job_id FROM applications WHERE user_id = ?)';
+            params.push(userId);
+        }
+
+        // Filter Tipe Pekerjaan (Full Time, Internship, dll)
+        if (type) {
+            query += ' AND job_type = ?';
+            params.push(type);
+        }
+
+        // Search Judul atau Perusahaan
         if (search) {
             query += ' AND (title LIKE ? OR company_name LIKE ?)';
             params.push(`%${search}%`, `%${search}%`);
         }
 
-        query += ' ORDER BY created_at DESC'; // Urutkan dari yang terbaru
+        query += ' ORDER BY created_at DESC'; 
 
         const [jobs] = await db.query(query, params);
 
         res.status(200).json(jobs);
     } catch (error) {
-        console.error(error);
+        console.error("❌ Error getAllJobs:", error);
         res.status(500).json({ message: 'Error mengambil data lowongan' });
     }
 };
@@ -29,7 +58,7 @@ exports.getAllJobs = async (req, res) => {
 // --- 2. AMBIL DETAIL SATU LOWONGAN ---
 exports.getJobDetail = async (req, res) => {
     try {
-        const { id } = req.params; // Ambil ID dari URL (cth: /jobs/1)
+        const { id } = req.params; 
 
         const [jobs] = await db.query('SELECT * FROM jobs WHERE id = ?', [id]);
 
@@ -39,12 +68,12 @@ exports.getJobDetail = async (req, res) => {
 
         res.status(200).json(jobs[0]);
     } catch (error) {
-        console.error(error);
+        console.error("❌ Error getJobDetail:", error);
         res.status(500).json({ message: 'Error mengambil detail lowongan' });
     }
 };
 
-// --- 3. TAMBAH LOWONGAN BARU (Buat Test Data / Admin) ---
+// --- 3. TAMBAH LOWONGAN BARU (Admin) + NOTIFIKASI ---
 exports.createJob = async (req, res) => {
     try {
         const { 
@@ -52,18 +81,159 @@ exports.createJob = async (req, res) => {
             job_type, duration, salary_range, description, requirements 
         } = req.body;
 
+        // 1. Simpan ke Database
         const [result] = await db.query(
             `INSERT INTO jobs (title, company_name, logo_url, location, job_type, duration, salary_range, description, requirements) 
              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
             [title, company_name, logo_url, location, job_type, duration, salary_range, description, requirements]
         );
 
+        // --- 🔥 BAGIAN NOTIFIKASI 🔥 ---
+        if (result.affectedRows > 0) {
+            const notifTitle = "Halo Pencari Kerja CareerLink!";
+            const notifBody = `Lowongan ${title} baru saja ditambahkan, ayo lamar sekarang!`;
+
+            const newJobId = result.insertId;
+            notifHelper.broadcastToAllUsers(notifTitle, notifBody, result.insertId);
+            
+            console.log(`[NOTIF] Broadcast dikirim untuk lowongan: ${title}`);
+        }
+        // ------------------------------
+
         res.status(201).json({ 
             message: 'Lowongan berhasil dibuat!',
             jobId: result.insertId 
         });
     } catch (error) {
-        console.error(error);
+        console.error("❌ Error createJob:", error);
         res.status(500).json({ message: 'Gagal membuat lowongan' });
+    }
+};
+
+// --- 4. KIRIM LAMARAN (APPLY JOB) ---
+exports.applyJob = async (req, res) => {
+    try {
+        const { id } = req.params; // ID Lowongan
+        const userId = req.user.id; // ID User dari Token (Middleware)
+
+        console.log(`\n📥 [APPLY] User ${userId} melamar Job ${id}`);
+        
+        // --- 1. VALIDASI FILE ---
+        if (!req.files || !req.files['cv']) {
+            return res.status(400).json({ message: 'Wajib upload CV (PDF)!' });
+        }
+        const cvUrl = req.files['cv'][0].path.replace(/\\/g, "/"); // Normalisasi path Windows
+
+        if (!req.files['recommendation_letter']) {
+            return res.status(400).json({ message: 'Wajib upload Surat Rekomendasi (PDF)!' });
+        }
+        const recommendationUrl = req.files['recommendation_letter'][0].path.replace(/\\/g, "/");
+
+        let portfolioUrl = null;
+        if (req.files['portfolio']) {
+            portfolioUrl = req.files['portfolio'][0].path.replace(/\\/g, "/");
+        }
+
+        // --- 2. OLAH DATA TEKS ---
+        let { 
+            full_name, date_of_birth, gender, education, major, phone_number, about_me 
+        } = req.body;
+
+        if (!full_name || !phone_number) {
+             return res.status(400).json({ message: 'Nama dan Nomor HP wajib diisi!' });
+        }
+
+        // Fix Date Format (DD/MM/YYYY -> YYYY-MM-DD)
+        if (date_of_birth && date_of_birth.includes('/')) {
+            const parts = date_of_birth.split('/'); // [22, 09, 2005]
+            if (parts.length === 3) {
+                date_of_birth = `${parts[2]}-${parts[1]}-${parts[0]}`; // 2005-09-22
+            }
+        }
+
+        // --- 3. CEK DUPLIKAT ---
+        const [existing] = await db.query(
+            'SELECT * FROM applications WHERE user_id = ? AND job_id = ?',
+            [userId, id]
+        );
+
+        if (existing.length > 0) {
+            return res.status(400).json({ message: 'Kamu sudah melamar di lowongan ini sebelumnya!' });
+        }
+
+        // --- 4. SIMPAN KE DATABASE ---
+        await db.query(
+            `INSERT INTO applications 
+            (user_id, job_id, cv_url, portfolio_url, recommendation_letter_url, status,
+             full_name, date_of_birth, gender, education, major, phone_number, about_me, applied_at) 
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
+            [
+                userId, id, cvUrl, 
+                portfolioUrl, 
+                recommendationUrl, 
+                'Pending', 
+                full_name, date_of_birth, gender, education, major, phone_number, about_me
+            ]
+        );
+
+        console.log("✅ Sukses menyimpan lamaran!");
+        res.status(201).json({ message: 'Lamaran berhasil dikirim! Semoga sukses.' });
+
+    } catch (error) {
+        console.error("❌ Error applyJob:", error);
+        res.status(500).json({ message: 'Gagal mengirim lamaran: ' + error.message });
+    }
+};
+
+// --- 5. LIHAT RIWAYAT LAMARAN (User) ---
+exports.getRiwayatLamaran = async (req, res) => {
+    try {
+        const userId = req.user.id; 
+
+        const query = `
+            SELECT 
+                a.id as application_id, a.status, a.applied_at,
+                j.id as job_id, j.title, j.company_name, j.logo_url, j.location
+            FROM applications a
+            JOIN jobs j ON a.job_id = j.id
+            WHERE a.user_id = ?
+            ORDER BY a.applied_at DESC
+        `;
+
+        const [rows] = await db.query(query, [userId]);
+        res.status(200).json(rows);
+
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Gagal mengambil riwayat' });
+    }
+};
+
+// --- 6. LIHAT DETAIL LAMARAN (Oleh User) ---
+exports.getDetailLamaran = async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const { applicationId } = req.params;
+
+        const query = `
+            SELECT 
+                a.*, 
+                j.title as job_title, j.company_name, j.logo_url, j.location
+            FROM applications a
+            JOIN jobs j ON a.job_id = j.id
+            WHERE a.id = ? AND a.user_id = ?
+        `;
+
+        const [rows] = await db.query(query, [applicationId, userId]);
+
+        if (rows.length === 0) {
+            return res.status(404).json({ message: 'Lamaran tidak ditemukan atau bukan milikmu.' });
+        }
+
+        res.status(200).json(rows[0]);
+
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Gagal mengambil detail lamaran' });
     }
 };

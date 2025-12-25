@@ -1,19 +1,25 @@
-const jwt = require("jsonwebtoken");
+// Lokasi: middleware/authMiddleware.js
+const jwt = require('jsonwebtoken');
+require('dotenv').config();
 
-module.exports = (req, res, next) => {
-  try {
-    const authHeader = req.headers.authorization || "";
-    const token = authHeader.startsWith("Bearer ")
-      ? authHeader.slice(7)
-      : null;
+exports.authenticateToken = (req, res, next) => {
+    const authHeader = req.headers.authorization;
 
-    if (!token) return res.status(401).json({ message: "Token tidak ditemukan" });
+    if (!authHeader) {
+        return res.status(401).json({ message: 'Akses ditolak! Kamu belum login.' });
+    }
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    req.user = { id: decoded.id, role: decoded.role };
+    const token = authHeader.split(' ')[1];
 
-    next();
-  } catch (err) {
-    return res.status(401).json({ message: "Token tidak valid", error: err.message });
-  }
+    if (!token) {
+        return res.status(401).json({ message: 'Format token salah.' });
+    }
+
+    try {
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        req.user = decoded;
+        next();
+    } catch (error) {
+        return res.status(403).json({ message: 'Token tidak valid atau kadaluarsa.' });
+    }
 };

@@ -12,23 +12,33 @@ dotenv.config();
 const app = express();
 const port = process.env.PORT || 3000;
 
-// Middleware
+// --- MIDDLEWARE UTAMA ---
 app.use(cors()); // Biar bisa diakses dari HP/Emulator Android
 app.use(bodyParser.json()); // Biar bisa baca JSON dari Android
 app.use(bodyParser.urlencoded({ extended: true }));
 
 // Folder statis untuk menyimpan file upload (CV/Gambar)
-// Nanti file bisa diakses via: http://localhost:3000/uploads/namafile.jpg
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-// --- TEST ROUTE (Buat ngecek server nyala atau nggak) ---
+// --- 🔴 CCTV (LOGGER) - DARI KODEMU 🔴 ---
+// Kita PERTAHANKAN ini agar kamu tetap bisa memantau request yang masuk.
+app.use((req, res, next) => {
+    console.log(`\n📥 [CCTV] Request Masuk: ${req.method} ${req.url}`);
+    console.log('📦 Headers:', JSON.stringify(req.headers['content-type'])); // Cek tipe data
+    console.log('📦 Body:', req.body); // Cek isi data yang dikirim Android
+    next(); // Lanjut ke route berikutnya
+});
+
+// --- TEST ROUTE ---
 app.get('/', (req, res) => {
     res.send('Server CareerLink Berjalan dengan Aman!');
 });
 
-// --- IMPORT ROUTES (Nanti kita isi ini bertahap) ---
+// --- IMPORT ROUTES ---
 const authRoutes = require('./routes/authRoutes');
 const jobRoutes = require('./routes/jobRoutes');
+// [MERGE] Menambahkan Import Mentoring (Dari Temanmu)
+const mentoringRoutes = require("./routes/mentoringRoutes"); 
 
 // ---MENTORING ROUTES ---
 const mentoringRoutes = require("./routes/mentoringRoutes");
@@ -39,6 +49,8 @@ app.use("/api/mentoring", mentoringRoutes);
 // Artinya semua URL di authRoutes bakal diawali /api/auth
 app.use('/api/auth', authRoutes);
 app.use('/api/jobs', jobRoutes);
+// [MERGE] Mengaktifkan Route Mentoring (Dari Temanmu)
+app.use("/api/mentoring", mentoringRoutes); 
 
 // Jalankan Server
 app.listen(port, () => {
