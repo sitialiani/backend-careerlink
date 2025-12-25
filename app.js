@@ -40,7 +40,13 @@ const jobRoutes = require('./routes/jobRoutes');
 // [MERGE] Menambahkan Import Mentoring (Dari Temanmu)
 const mentoringRoutes = require("./routes/mentoringRoutes"); 
 
-// --- GUNAKAN ROUTES ---
+// ---MENTORING ROUTES ---
+const mentoringRoutes = require("./routes/mentoringRoutes");
+app.use("/api/mentoring", mentoringRoutes);
+
+
+// Gunakan rutenya
+// Artinya semua URL di authRoutes bakal diawali /api/auth
 app.use('/api/auth', authRoutes);
 app.use('/api/jobs', jobRoutes);
 // [MERGE] Mengaktifkan Route Mentoring (Dari Temanmu)
