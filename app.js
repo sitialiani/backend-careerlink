@@ -12,30 +12,38 @@ dotenv.config();
 const app = express();
 const port = process.env.PORT || 3000;
 
-// Middleware
-app.use(cors()); // Biar bisa diakses dari HP/Emulator Android
-app.use(bodyParser.json()); // Biar bisa baca JSON dari Android
+// --- MIDDLEWARE UTAMA ---
+app.use(cors());
+app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
 // Folder statis untuk menyimpan file upload (CV/Gambar)
-// Nanti file bisa diakses via: http://localhost:3000/uploads/namafile.jpg
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-// --- TEST ROUTE (Buat ngecek server nyala atau nggak) ---
+// --- CCTV (LOGGER) ---
+app.use((req, res, next) => {
+    console.log(`\n📥 [CCTV] Request Masuk: ${req.method} ${req.url}`);
+    console.log('📦 Headers:', req.headers['content-type']);
+    console.log('📦 Body:', req.body);
+    next();
+});
+
+// --- TEST ROUTE ---
 app.get('/', (req, res) => {
     res.send('Server CareerLink Berjalan dengan Aman!');
 });
 
-// --- IMPORT ROUTES (Nanti kita isi ini bertahap) ---
+// --- IMPORT ROUTES ---
 const authRoutes = require('./routes/authRoutes');
 const jobRoutes = require('./routes/jobRoutes');
-const careerFairRoutes = require("./routes/careerFairRoutes");
+const careerFairRoutes = require('./routes/careerFairRoutes');
+const mentoringRoutes = require('./routes/mentoringRoutes');
 
-// Gunakan rutenya
-// Artinya semua URL di authRoutes bakal diawali /api/auth
+// --- GUNAKAN ROUTES ---
 app.use('/api/auth', authRoutes);
 app.use('/api/jobs', jobRoutes);
-app.use("/api/career-fair", careerFairRoutes);
+app.use('/api/career-fair', careerFairRoutes);
+app.use('/api/mentoring', mentoringRoutes);
 
 // Jalankan Server
 app.listen(port, () => {
