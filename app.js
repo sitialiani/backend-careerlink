@@ -29,12 +29,13 @@ app.get('/', (req, res) => {
 // --- IMPORT ROUTES (Nanti kita isi ini bertahap) ---
 const authRoutes = require('./routes/authRoutes');
 const jobRoutes = require('./routes/jobRoutes');
-
+const careerFairRoutes = require("./routes/careerFairRoutes");
 
 // Gunakan rutenya
 // Artinya semua URL di authRoutes bakal diawali /api/auth
 app.use('/api/auth', authRoutes);
 app.use('/api/jobs', jobRoutes);
+app.use("/api/career-fair", careerFairRoutes);
 
 // Jalankan Server
 app.listen(port, () => {
