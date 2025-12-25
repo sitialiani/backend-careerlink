@@ -1,15 +1,13 @@
+// Lokasi: routes/authRoutes.js
 const express = require('express');
 const router = express.Router();
 const authController = require('../controllers/authController');
-const { authenticateToken } = require('../middleware/authMiddleware');
 
-if (!authenticateToken) {
-    console.error("CRITICAL ERROR: authenticateToken gagal di-load! Cek path file middleware.");
-    process.exit(1);
-}
-
+// Definisikan Endpoint
+// URL nanti: http://localhost:3000/api/auth/register
 router.post('/register', authController.register);
+
+// URL nanti: http://localhost:3000/api/auth/login
 router.post('/login', authController.login);
-router.post('/update-fcm', authenticateToken, authController.updateFcmToken);
 
 module.exports = router;
