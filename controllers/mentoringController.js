@@ -1,6 +1,6 @@
 const db = require("../config/database");
 
-// 1. List jadwal mentoring
+
 exports.getSchedules = async (req, res) => {
   try {
     const [rows] = await db.query(`
@@ -16,7 +16,7 @@ exports.getSchedules = async (req, res) => {
   }
 };
 
-// 2. Detail mentoring
+
 exports.getScheduleDetail = async (req, res) => {
   try {
     const [rows] = await db.query(`
@@ -36,7 +36,7 @@ exports.getScheduleDetail = async (req, res) => {
   }
 };
 
-// 3. Booking mentoring
+
 exports.bookMentoring = async (req, res) => {
   try {
     const userId = req.user.id;
@@ -47,7 +47,7 @@ exports.bookMentoring = async (req, res) => {
       VALUES (?, ?, 'Confirmed')
     `, [userId, scheduleId]);
 
-    // Notifikasi
+    
     await db.query(`
       INSERT INTO notifications (user_id, title, message, type, reference_id)
       VALUES (?, 'Mentoring Reminder',
@@ -61,7 +61,7 @@ exports.bookMentoring = async (req, res) => {
   }
 };
 
-// 4. Ambil notifikasi mentoring
+
 exports.getNotifications = async (req, res) => {
   try {
     const [rows] = await db.query(`
@@ -76,7 +76,7 @@ exports.getNotifications = async (req, res) => {
   }
 };
 
-// 5. Simpan catatan mentoring
+
 exports.saveNote = async (req, res) => {
   try {
     const { bookingId, content } = req.body;
@@ -92,7 +92,7 @@ exports.saveNote = async (req, res) => {
   }
 };
 
-// 6. Ambil catatan mentoring
+
 exports.getNote = async (req, res) => {
   try {
     const [rows] = await db.query(`

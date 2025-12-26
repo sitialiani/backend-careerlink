@@ -1,12 +1,12 @@
-// Lokasi: config/database.js
+
 const mysql = require('mysql2');
 const dotenv = require('dotenv');
 
-// Load settingan dari file .env
+
 dotenv.config();
 
-// Buat kolam koneksi (Connection Pool)
-// Kita pakai Pool biar aplikasi nggak berat kalau banyak user akses barengan
+
+
 const pool = mysql.createPool({
     host: process.env.DB_HOST,
     user: process.env.DB_USER,
@@ -17,7 +17,7 @@ const pool = mysql.createPool({
     queueLimit: 0
 });
 
-// Cek koneksi pas awal jalan (Optional, biar tau kalo error)
+
 pool.getConnection((err, connection) => {
     if (err) {
         console.error('❌ Gagal connect ke Database:', err.code);
@@ -28,5 +28,5 @@ pool.getConnection((err, connection) => {
     }
 });
 
-// Kita export versi 'promise' biar nanti bisa pake async/await (lebih modern)
+
 module.exports = pool.promise();
