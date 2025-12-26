@@ -38,17 +38,17 @@ app.get('/', (req, res) => {
 
 const authRoutes = require('./routes/authRoutes');
 const jobRoutes = require('./routes/jobRoutes');
-const mentoringRoutes = require("./routes/mentoringRoutes"); 
 const courseRoutes = require('./routes/courseRoutes'); 
 const badgeRoutes = require('./routes/badgeRoutes');
-
+const careerFairRoutes = require('./routes/careerFairRoutes');
+const mentoringRoutes = require('./routes/mentoringRoutes');
 
 app.use('/api/auth', authRoutes);
 app.use('/api/jobs', jobRoutes);
-app.use("/api/mentoring", mentoringRoutes); 
 app.use('/api/courses', courseRoutes); 
 app.use('/api/badges', badgeRoutes);   
-
+app.use('/api/career-fair', careerFairRoutes);
+app.use('/api/mentoring', mentoringRoutes);
 
 app.listen(port, () => {
     console.log(`\n🚀 Server berjalan di: http://localhost:${port}`);
