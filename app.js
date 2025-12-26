@@ -51,6 +51,6 @@ app.use('/api/badges', badgeRoutes);
 
 
 app.listen(port, () => {
-    console.log(`\n🚀 Server berjalan di: http:
+    console.log(`\n🚀 Server berjalan di: http://localhost:${port}`);
     console.log(`📂 Menunggu koneksi database...`);
 });
