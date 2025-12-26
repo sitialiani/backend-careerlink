@@ -2,43 +2,43 @@ const db = require('../config/database');
 const jwt = require('jsonwebtoken'); 
 const notifHelper = require('../utils/notificationHelper');
 
-// --- 1. AMBIL SEMUA LOWONGAN (Filter, Search & Hide Applied) ---
+
 exports.getAllJobs = async (req, res) => {
     try {
         const { type, search } = req.query;
         let userId = null;
 
-        // --- LOGIKA BARU: CEK TOKEN USER ---
-        // Kita cek header Authorization manual di sini
-        // Tujuannya: Kalau user login, kita dapat ID-nya buat filter lowongan yang udah dilamar
+        
+        
+        
         const authHeader = req.headers['authorization'];
         if (authHeader) {
             const token = authHeader.split(' ')[1];
             try {
-                // Pastikan 'YOUR_SECRET_KEY' sama dengan yang ada di authController / .env
+                
                 const decoded = jwt.verify(token, process.env.JWT_SECRET || 'YOUR_SECRET_KEY'); 
                 userId = decoded.id;
             } catch (err) {
-                // Token error/expired? Gpp, anggap guest user
+                
             }
         }
         
         let query = 'SELECT * FROM jobs WHERE is_active = 1';
         let params = [];
 
-        // --- FITUR: SEMBUNYIKAN YANG SUDAH DILAMAR ---
+        
         if (userId) {
             query += ' AND id NOT IN (SELECT job_id FROM applications WHERE user_id = ?)';
             params.push(userId);
         }
 
-        // Filter Tipe Pekerjaan (Full Time, Internship, dll)
+        
         if (type) {
             query += ' AND job_type = ?';
             params.push(type);
         }
 
-        // Search Judul atau Perusahaan
+        
         if (search) {
             query += ' AND (title LIKE ? OR company_name LIKE ?)';
             params.push(`%${search}%`, `%${search}%`);
@@ -55,7 +55,7 @@ exports.getAllJobs = async (req, res) => {
     }
 };
 
-// --- 2. AMBIL DETAIL SATU LOWONGAN ---
+
 exports.getJobDetail = async (req, res) => {
     try {
         const { id } = req.params; 
@@ -73,7 +73,7 @@ exports.getJobDetail = async (req, res) => {
     }
 };
 
-// --- 3. TAMBAH LOWONGAN BARU (Admin) + NOTIFIKASI ---
+
 exports.createJob = async (req, res) => {
     try {
         const { 
@@ -81,14 +81,14 @@ exports.createJob = async (req, res) => {
             job_type, duration, salary_range, description, requirements 
         } = req.body;
 
-        // 1. Simpan ke Database
+        
         const [result] = await db.query(
             `INSERT INTO jobs (title, company_name, logo_url, location, job_type, duration, salary_range, description, requirements) 
              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
             [title, company_name, logo_url, location, job_type, duration, salary_range, description, requirements]
         );
 
-        // --- 🔥 BAGIAN NOTIFIKASI 🔥 ---
+        
         if (result.affectedRows > 0) {
             const notifTitle = "Halo Pencari Kerja CareerLink!";
             const notifBody = `Lowongan ${title} baru saja ditambahkan, ayo lamar sekarang!`;
@@ -98,7 +98,7 @@ exports.createJob = async (req, res) => {
             
             console.log(`[NOTIF] Broadcast dikirim untuk lowongan: ${title}`);
         }
-        // ------------------------------
+        
 
         res.status(201).json({ 
             message: 'Lowongan berhasil dibuat!',
@@ -110,19 +110,19 @@ exports.createJob = async (req, res) => {
     }
 };
 
-// --- 4. KIRIM LAMARAN (APPLY JOB) ---
+
 exports.applyJob = async (req, res) => {
     try {
-        const { id } = req.params; // ID Lowongan
-        const userId = req.user.id; // ID User dari Token (Middleware)
+        const { id } = req.params; 
+        const userId = req.user.id; 
 
         console.log(`\n📥 [APPLY] User ${userId} melamar Job ${id}`);
         
-        // --- 1. VALIDASI FILE ---
+        
         if (!req.files || !req.files['cv']) {
             return res.status(400).json({ message: 'Wajib upload CV (PDF)!' });
         }
-        const cvUrl = req.files['cv'][0].path.replace(/\\/g, "/"); // Normalisasi path Windows
+        const cvUrl = req.files['cv'][0].path.replace(/\\/g, "/"); 
 
         if (!req.files['recommendation_letter']) {
             return res.status(400).json({ message: 'Wajib upload Surat Rekomendasi (PDF)!' });
@@ -134,7 +134,7 @@ exports.applyJob = async (req, res) => {
             portfolioUrl = req.files['portfolio'][0].path.replace(/\\/g, "/");
         }
 
-        // --- 2. OLAH DATA TEKS ---
+        
         let { 
             full_name, date_of_birth, gender, education, major, phone_number, about_me 
         } = req.body;
@@ -143,15 +143,15 @@ exports.applyJob = async (req, res) => {
              return res.status(400).json({ message: 'Nama dan Nomor HP wajib diisi!' });
         }
 
-        // Fix Date Format (DD/MM/YYYY -> YYYY-MM-DD)
+        
         if (date_of_birth && date_of_birth.includes('/')) {
-            const parts = date_of_birth.split('/'); // [22, 09, 2005]
+            const parts = date_of_birth.split('/'); 
             if (parts.length === 3) {
-                date_of_birth = `${parts[2]}-${parts[1]}-${parts[0]}`; // 2005-09-22
+                date_of_birth = `${parts[2]}-${parts[1]}-${parts[0]}`; 
             }
         }
 
-        // --- 3. CEK DUPLIKAT ---
+        
         const [existing] = await db.query(
             'SELECT * FROM applications WHERE user_id = ? AND job_id = ?',
             [userId, id]
@@ -161,7 +161,7 @@ exports.applyJob = async (req, res) => {
             return res.status(400).json({ message: 'Kamu sudah melamar di lowongan ini sebelumnya!' });
         }
 
-        // --- 4. SIMPAN KE DATABASE ---
+        
         await db.query(
             `INSERT INTO applications 
             (user_id, job_id, cv_url, portfolio_url, recommendation_letter_url, status,
@@ -185,7 +185,7 @@ exports.applyJob = async (req, res) => {
     }
 };
 
-// --- 5. LIHAT RIWAYAT LAMARAN (User) ---
+
 exports.getRiwayatLamaran = async (req, res) => {
     try {
         const userId = req.user.id; 
@@ -209,7 +209,7 @@ exports.getRiwayatLamaran = async (req, res) => {
     }
 };
 
-// --- 6. LIHAT DETAIL LAMARAN (Oleh User) ---
+
 exports.getDetailLamaran = async (req, res) => {
     try {
         const userId = req.user.id;

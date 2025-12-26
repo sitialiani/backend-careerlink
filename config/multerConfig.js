@@ -2,7 +2,7 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 
-// Pastikan folder 'uploads' ada secara otomatis
+
 const uploadDir = 'uploads';
 if (!fs.existsSync(uploadDir)) {
     fs.mkdirSync(uploadDir);
@@ -17,7 +17,7 @@ const storage = multer.diskStorage({
     }
 });
 
-// Update filter: Terima PDF dan Gambar (JPG/PNG)
+
 const fileFilter = (req, file, cb) => {
     const allowedTypes = ['application/pdf', 'image/jpeg', 'image/png', 'image/jpg'];
     if (allowedTypes.includes(file.mimetype)) {

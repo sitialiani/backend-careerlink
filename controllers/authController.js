@@ -1,4 +1,4 @@
-// Lokasi: controllers/authController.js
+
 const db = require('../config/database');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
@@ -7,7 +7,7 @@ exports.register = async (req, res) => {
     try {
         const { full_name, name, email, password, role } = req.body;
         
-        // [MERGE] Support untuk 'full_name' (Punyamu) DAN 'name' (Punya Temanmu)
+        
         const finalName = full_name || name; 
 
         if (!finalName || !email || !password) {
@@ -68,8 +68,8 @@ exports.login = async (req, res) => {
             token: token,
             user: {
                 id: user.id,
-                name: user.name,          // Untuk Android Temanmu
-                full_name: user.name,     // Untuk Android Kamu
+                name: user.name,          
+                full_name: user.name,     
                 email: user.email,
                 role: user.role,
                 photo_profile_url: user.photo_profile_url

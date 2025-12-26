@@ -1,7 +1,7 @@
 const db = require('../config/database');
-const admin = require('firebase-admin'); // 🔥 WAJIB ADA untuk Notifikasi
+const admin = require('firebase-admin'); 
 
-// 1. Ambil Semua Kursus (Untuk DaftarKursusScreen)
+
 exports.getCourses = async (req, res) => {
     try {
         const userId = req.user.id;
@@ -16,7 +16,7 @@ exports.getCourses = async (req, res) => {
     }
 };
 
-// 2. Ambil Kursus Rekomendasi (Untuk DashboardKursusScreen)
+
 exports.getRecommendedCourses = async (req, res) => {
     try {
         let query = 'SELECT * FROM courses';
@@ -36,7 +36,7 @@ exports.getRecommendedCourses = async (req, res) => {
     }
 };
 
-// 3. Ambil Detail Kursus
+
 exports.getCourseDetail = async (req, res) => {
     try {
         const { courseId } = req.params;
@@ -51,13 +51,13 @@ exports.getCourseDetail = async (req, res) => {
     }
 };
 
-// 4. Daftar Kursus (Enroll) + KIRIM NOTIFIKASI 🔥
+
 exports.enrollCourse = async (req, res) => {
     try {
-        const { courseId } = req.params; // Pastikan route pake :courseId
+        const { courseId } = req.params; 
         const userId = req.user.id;
 
-        // A. Cek apakah sudah terdaftar
+        
         const [existing] = await db.query(
             'SELECT * FROM enrollments WHERE user_id = ? AND course_id = ?',
             [userId, courseId]
@@ -67,22 +67,22 @@ exports.enrollCourse = async (req, res) => {
             return res.status(400).json({ success: false, message: 'Anda sudah terdaftar di kursus ini' });
         }
 
-        // B. Insert ke Enrollments
+        
         await db.query(
             'INSERT INTO enrollments (user_id, course_id, status, registered_at) VALUES (?, ?, ?, NOW())',
             [userId, courseId, 'Active']
         );
 
-        // --- 🔥 LOGIKA NOTIFIKASI DIMULAI 🔥 ---
         
-        // C. Ambil Token FCM User & Judul Kursus
+        
+        
         const [userData] = await db.query('SELECT fcm_token FROM users WHERE id = ?', [userId]);
         const [courseData] = await db.query('SELECT title FROM courses WHERE id = ?', [courseId]);
 
         const userToken = userData[0]?.fcm_token;
         const courseTitle = courseData[0]?.title || 'Kursus Baru';
 
-        // D. Kirim Notif ke HP
+        
         if (userToken) {
             const message = {
                 notification: {
@@ -103,7 +103,7 @@ exports.enrollCourse = async (req, res) => {
                 console.error("❌ Gagal kirim notif:", error.message);
             }
         }
-        // --- LOGIKA NOTIFIKASI SELESAI ---
+        
 
         res.status(201).json({ success: true, message: 'Pendaftaran kursus berhasil' });
 
@@ -113,7 +113,7 @@ exports.enrollCourse = async (req, res) => {
     }
 };
 
-// 5. Ambil Statistik User
+
 exports.getUserStats = async (req, res) => {
     try {
         const userId = req.user.id;
@@ -142,7 +142,7 @@ exports.getUserStats = async (req, res) => {
     }
 };
 
-// 6. Ambil List Kursus Berdasarkan Status
+
 exports.getMyEnrolledCourses = async (req, res) => {
     try {
         const userId = req.user.id;

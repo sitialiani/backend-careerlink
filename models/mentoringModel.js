@@ -1,4 +1,4 @@
-// models/mentoringModel.js
+
 const mongoose = require("mongoose");
 
 const locationSchema = new mongoose.Schema(
@@ -13,18 +13,18 @@ const locationSchema = new mongoose.Schema(
 
 const sessionSchema = new mongoose.Schema(
   {
-    title: { type: String, required: true }, // contoh: "UI/UX Portfolio Review"
-    mentorName: { type: String, required: true }, // contoh: "Jack"
-    mentorJob: { type: String, default: "" }, // contoh: "Microsoft"
+    title: { type: String, required: true }, 
+    mentorName: { type: String, required: true }, 
+    mentorJob: { type: String, default: "" }, 
     description: { type: String, default: "" },
-    platform: { type: String, default: "" }, // contoh: "Cafe Dari Sini"
+    platform: { type: String, default: "" }, 
     durationMinutes: { type: Number, default: 60 },
     timeZone: { type: String, default: "WIB" },
     startAt: { type: Date, required: true },
     endAt: { type: Date, required: true },
     location: { type: locationSchema, default: () => ({}) },
 
-    // kuota dan status
+    
     capacity: { type: Number, default: 1 },
     bookedCount: { type: Number, default: 0 },
     isActive: { type: Boolean, default: true },
@@ -55,7 +55,7 @@ const noteSchema = new mongoose.Schema(
     sessionId: { type: mongoose.Schema.Types.ObjectId, ref: "MentoringSession", required: true },
     userId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
     content: { type: String, default: "" },
-    attachments: [{ type: String }], // url/path file kalau kamu mau
+    attachments: [{ type: String }], 
   },
   { timestamps: true }
 );
@@ -66,9 +66,9 @@ const notifSchema = new mongoose.Schema(
     type: { type: String, enum: ["EVENT", "REMINDER"], default: "REMINDER" },
     title: { type: String, required: true },
     message: { type: String, default: "" },
-    targetRoute: { type: String, default: "" }, // contoh: "/detail/{id}"
+    targetRoute: { type: String, default: "" }, 
     isActive: { type: Boolean, default: true },
-    fireAt: { type: Date, default: null }, // kapan reminder
+    fireAt: { type: Date, default: null }, 
   },
   { timestamps: true }
 );
