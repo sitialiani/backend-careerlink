@@ -63,7 +63,6 @@ exports.login = async (req, res) => {
             { expiresIn: '7d' }
         );
 
-        // [MERGE] Mengirim 'name' DAN 'full_name' agar kedua Android support
         res.status(200).json({
             message: 'Login berhasil!',
             token: token,

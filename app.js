@@ -5,6 +5,7 @@ const cors = require('cors');
 const dotenv = require('dotenv');
 const path = require('path');
 
+
 // Load environment variables
 dotenv.config();
 
@@ -37,14 +38,16 @@ app.get('/', (req, res) => {
 // --- IMPORT ROUTES ---
 const authRoutes = require('./routes/authRoutes');
 const jobRoutes = require('./routes/jobRoutes');
-// [MERGE] Menambahkan Import Mentoring (Dari Temanmu)
 const mentoringRoutes = require("./routes/mentoringRoutes"); 
+const courseRoutes = require('./routes/courseRoutes'); 
+const badgeRoutes = require('./routes/badgeRoutes');
 
-// --- GUNAKAN ROUTES ---
+
 app.use('/api/auth', authRoutes);
 app.use('/api/jobs', jobRoutes);
-// [MERGE] Mengaktifkan Route Mentoring (Dari Temanmu)
 app.use("/api/mentoring", mentoringRoutes); 
+app.use('/api/courses', courseRoutes); 
+app.use('/api/badges', badgeRoutes);   
 
 // Jalankan Server
 app.listen(port, () => {
